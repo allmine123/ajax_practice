@@ -4,9 +4,21 @@ class PostsController < ApplicationController
   def map
   end
   def map_data
-    @school = School.all.limit(10)
+    max = JSON.parse(params[:max]) #JSONstring => hash
+    min = JSON.parse(params[:min]) #SONstring => hash
+    indices = JSON.parse(params[:indices]) #네이버 앱에 이미 로딩되어 있는 학교들의 id
+    school = School.where("(lat BETWEEN ? AND ?) and (lng BETWEEN ? and ?)",min["_lat"],max["_lat"],min["_lng"],max["_lng"])
+    school_id = school.map{|x| x.id}
+    school_id -= indices #기존에 네이버 맵에 로딩되어 있지 않은 학교들의 id만 저장되어 있음
+    if school_id.length == 0
+      school = []
+    else
+      school = school.select{|x| school_id.include? x.id} #school_id에 존재하는 학교들만 school에 저장
+    end
+
+    #@school = School.all.limit(100)
     respond_to do |format|
-      format.json { render json: @school } #자동으로 json 형식으로 바꿔줌.
+      format.json { render json: [school, school_id] } #자동으로 json 형식으로 바꿔줌.
     end
   end
   # GET /posts
